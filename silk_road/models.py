@@ -51,21 +51,47 @@ class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
     material = db.Column(db.String)
-    size = db.Column(db.String)
+    size = db.relationship('Size', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
     description = db.Column(db.String)
-    color = db.Column(db.String)
+    color = db.relationship('Color', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
     care = db.Column(db.String)
     condition = db.Column(db.String)
+    discount = db.Column(db.Integer)
     design = db.Column(db.String)
     use = db.Column(db.String)
-    weight = db.Column(db.Integer)
+    weight = db.relationship('Weight', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
     price = db.Column(db.Integer)
     old_price = db.Column(db.Integer)
-    photo = db.Column(db.Integer)
+    photo = db.relationship('Photo', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
     score = db.Column(db.Integer)
     subcategory_id = db.Column(db.Integer, db.ForeignKey("subcategory.id"))
     card = db.relationship('Card', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
     wishlist = db.relationship('Wishlist', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
+
+
+class Size(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    deminsion = db.Column(db.String)
+    product_id = db.Column(db.Integer, db.ForeignKey("product.id"))
+    card = db.relationship("Card", backref=backref('size'), lazy=True)
+
+
+class Weight(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    deminsion = db.Column(db.Text)
+    product_id = db.Column(db.Integer, db.ForeignKey("product.id", ondelete='CASCADE'), nullable=False)
+
+
+class Photo(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    base = db.Column(db.String)
+    product_id = db.Column(db.Integer, db.ForeignKey("product.id", ondelete='CASCADE'), nullable=False)
+
+
+class Color(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String)
+    product_id = db.Column(db.Integer, db.ForeignKey("product.id", ondelete='CASCADE'), nullable=False)
 
 
 class Card(db.Model):
@@ -73,6 +99,7 @@ class Card(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey("product.id", ondelete='CASCADE'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete='CASCADE'), nullable=False)
     quantity = db.Column(db.Integer)
+    size_id = db.Column(db.Integer, db.ForeignKey("size.id"), nullable=False)
 
 
 class Wishlist(db.Model):

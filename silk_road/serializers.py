@@ -35,29 +35,61 @@ class UserSerializer(Schema):
 user_schema = UserSerializer()
 
 
+class CategorySerializer(Schema):
+    id = fields.Integer(dump_only=True)
+    name = fields.String(required=True)
+
+category_schema = CategorySerializer(many=True)
+
+
+class SubcategorySerializer(Schema):
+    id = fields.Integer(dump_only=True)
+    name = fields.String(required=True)
+    category = fields.Nested(CategorySerializer, required=True)
+
+subcategory_schema = SubcategorySerializer(many=True)
+
+
+class WeightSerializer(Schema):
+    id = fields.Integer(dump_only=True)
+    deminsion = fields.String(required=True)
+
+
+class PhotoSerializer(Schema):
+    id = fields.Integer(dump_only=True)
+    base = fields.String(required=True)
+
+
+class ColorSerializer(Schema):
+    id = fields.Integer(dump_only=True)
+    name = fields.String(required=True)
+
+
+class SizeSerializer(Schema):
+    id = fields.Integer(dump_only=True)
+    deminsion = fields.String(required=True)
+
+size_schema = SizeSerializer()
+
+
 class ProductSerializer(Schema):
     id = fields.Integer(dump_only=True)
-    name = fields.String
-    material = fields.String
-    size = fields.String
-    description = fields.String
-    color = fields.String
-    care = fields.String
-    condition = fields.String
-    design = fields.String
-    use = fields.String
-    weight = db.Column(db.Integer)
-    price = db.Column(db.Integer)
-    old_price = db.Column(db.Integer)
-    photo = db.Column(db.Integer)
-    score = db.Column(db.Integer)
-    subcategory_id = db.Column(db.Integer, db.ForeignKey("subcategory.id"))
+    name = fields.String(required=True)
+    material = fields.String()
+    description = fields.String(required=True)
+    care = fields.String()
+    condition = fields.String()
+    design = fields.String()
+    discount = fields.Integer()
+    use = fields.String()
+    price = fields.Integer(required=True)
+    old_price = fields.Integer()
+    score = fields.Integer(required=True)
+    subcategory = fields.Nested(SubcategorySerializer, dump_only=True, required=True)
+    weight = fields.Nested(WeightSerializer, dump_only=True, required=True, many=True)
+    photo = fields.Nested(PhotoSerializer, dump_only=True, required=True, many=True)
+    size = fields.Nested(SizeSerializer, dump_only=True, required=True, many=True)
+    color = fields.Nested(ColorSerializer, dump_only=True, required=True, many=True)
 
-
-
-
-# class CategorySerializer(Schema):
-#     id = fields.Integer(dump_only=True)
-#     category = fields.String(dump_only=True)
-#     icon = fields.String(dump_only=True)
-#     subcategory = fields.Nested(SubCategorySerializer, dump_only=True, many=True)
+product_schemas = ProductSerializer(many=True)
+product_schema = ProductSerializer()
