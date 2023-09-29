@@ -15,7 +15,7 @@ class User(db.Model):
     created = db.Column(db.DateTime, default=datetime.now())
     image = db.Column(db.Text)
     card = db.relationship('Card', backref=backref('user', passive_deletes=True), cascade='all, delete', lazy=True)
-    wishlist = db.relationship('Wishlist', backref=backref('user', passive_deletes=True), cascade='all, delete', lazy=True)
+    comment = db.relationship('Comment', backref=backref('user', passive_deletes=True), cascade='all, delete', lazy=True)
 
     @property
     def password(self):
@@ -60,13 +60,13 @@ class Product(db.Model):
     design = db.Column(db.String)
     use = db.Column(db.String)
     weight = db.relationship('Weight', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
-    price = db.Column(db.Integer)
-    old_price = db.Column(db.Integer)
+    price = db.Column(db.Float)
+    old_price = db.Column(db.Float)
     photo = db.relationship('Photo', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
-    score = db.Column(db.Integer)
     subcategory_id = db.Column(db.Integer, db.ForeignKey("subcategory.id"))
     card = db.relationship('Card', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
     wishlist = db.relationship('Wishlist', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
+    comment = db.relationship('Comment', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
 
 
 class Size(db.Model):
@@ -74,6 +74,16 @@ class Size(db.Model):
     deminsion = db.Column(db.String)
     product_id = db.Column(db.Integer, db.ForeignKey("product.id"))
     card = db.relationship("Card", backref=backref('size'), lazy=True)
+
+
+class Comment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.Integer)
+    product_id = db.Column(db.Integer, db.ForeignKey("product.id", ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete='CASCADE'), nullable=False)
+    created = db.Column(db.DateTime, default=datetime.now())
+    author_name = db.Column(db.String)
+    rating = db.Column(db.Integer)
 
 
 class Weight(db.Model):

@@ -72,7 +72,15 @@ class SizeSerializer(Schema):
 size_schema = SizeSerializer()
 
 
-class ProductSerializer(Schema):
+class CommentSerialize(Schema):
+    id = fields.Integer(dump_only=True)
+    body = fields.String(required=True)
+    author_name = fields.String(redirect=True)
+    created = fields.DateTime(dump_only=True)
+    rating = fields.Integer(required=True)
+
+
+class ProductByIdSerializer(Schema):
     id = fields.Integer(dump_only=True)
     name = fields.String(required=True)
     material = fields.String()
@@ -86,10 +94,24 @@ class ProductSerializer(Schema):
     old_price = fields.Integer()
     score = fields.Integer(required=True)
     subcategory = fields.Nested(SubcategorySerializer, dump_only=True, required=True)
+    comment = fields.Nested(CommentSerialize, dump_only=True, required=True, many=True)
     weight = fields.Nested(WeightSerializer, dump_only=True, required=True, many=True)
     photo = fields.Nested(PhotoSerializer, dump_only=True, required=True, many=True)
     size = fields.Nested(SizeSerializer, dump_only=True, required=True, many=True)
     color = fields.Nested(ColorSerializer, dump_only=True, required=True, many=True)
+
+product_by_id_schema = ProductByIdSerializer()
+
+
+class ProductSerializer(Schema):
+    id = fields.Integer(dump_only=True)
+    name = fields.String(required=True)
+    discount = fields.Integer()
+    price = fields.Integer(required=True)
+    old_price = fields.Integer()
+    score = fields.Integer(required=True)
+    subcategory = fields.Nested(SubcategorySerializer, dump_only=True, required=True)
+    photo = fields.Nested(PhotoSerializer, dump_only=True, required=True, many=True)
 
 product_schemas = ProductSerializer(many=True)
 product_schema = ProductSerializer()
