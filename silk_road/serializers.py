@@ -75,7 +75,7 @@ size_schema = SizeSerializer()
 class CommentSerialize(Schema):
     id = fields.Integer(dump_only=True)
     body = fields.String(required=True)
-    author_name = fields.String(redirect=True)
+    author_email = fields.String(redirect=True)
     created = fields.DateTime(dump_only=True)
     rating = fields.Integer(required=True)
 

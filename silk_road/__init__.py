@@ -5,6 +5,8 @@ from flask_migrate import Migrate
 from sqlalchemy import MetaData
 from flask_jwt_extended import JWTManager
 
+UPLOAD_FOLDER = 'static/photos/'
+
 
 naming_convention = {
         "ix": 'ix_%(column_0_label)s',
@@ -24,6 +26,8 @@ def create_app():
     app = Flask(__name__)
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///test.db"
     app.config["JWT_SECRET_KEY"] = "super-secret"
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 
     db.init_app(app=app)
     ma.init_app(app)

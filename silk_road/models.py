@@ -80,9 +80,9 @@ class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.Integer)
     product_id = db.Column(db.Integer, db.ForeignKey("product.id", ondelete='CASCADE'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete='CASCADE'))
     created = db.Column(db.DateTime, default=datetime.now())
-    author_name = db.Column(db.String)
+    author_email = db.Column(db.String)
     rating = db.Column(db.Integer)
 
 
