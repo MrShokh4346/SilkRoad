@@ -13,7 +13,7 @@ class User(db.Model):
     password_hash = db.Column(db.String, nullable=False)
     phone = db.Column(db.String, nullable=False)
     created = db.Column(db.DateTime, default=datetime.now())
-    image = db.Column(db.Text)
+    photo = db.relationship('ProfilePhoto', backref=backref('user', passive_deletes=True), cascade='all, delete', lazy=True)
     card = db.relationship('Card', backref=backref('user', passive_deletes=True), cascade='all, delete', lazy=True)
     comment = db.relationship('Comment', backref=backref('user', passive_deletes=True), cascade='all, delete', lazy=True)
 
@@ -73,7 +73,6 @@ class Size(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     deminsion = db.Column(db.String)
     product_id = db.Column(db.Integer, db.ForeignKey("product.id"))
-    card = db.relationship("Card", backref=backref('size'), lazy=True)
 
 
 class Comment(db.Model):
@@ -98,6 +97,12 @@ class Photo(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey("product.id", ondelete='CASCADE'), nullable=False)
 
 
+class ProfilePhoto(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    base = db.Column(db.String)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete='CASCADE'), nullable=False)
+
+
 class Color(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
@@ -109,7 +114,9 @@ class Card(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey("product.id", ondelete='CASCADE'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete='CASCADE'), nullable=False)
     quantity = db.Column(db.Integer)
-    size_id = db.Column(db.Integer, db.ForeignKey("size.id"), nullable=False)
+    color = db.Column(db.String)
+    size = db.Column(db.String)
+    weight = db.Column(db.String)
 
 
 class Wishlist(db.Model):

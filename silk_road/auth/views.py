@@ -1,11 +1,19 @@
 from flask import jsonify, request, redirect
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint
-from silk_road.auth import bp 
+from silk_road.auth import bp
 from silk_road.models import *
 from silk_road import jwt
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, create_refresh_token, get_jwt
 from silk_road.serializers import user_schema
+
+
+@bp.route('/refresh')
+@jwt_required(refresh=True)
+def refresh():
+    identity = get_jwt_identity()
+    access_token = create_access_token(identity=identity)
+    return jsonify(access_token=access_token)
 
 
 @bp.route('/register', methods=['POST'])
@@ -15,7 +23,7 @@ def register():
     db.session.add(user)
     db.session.commit()
     return jsonify(user_schema.dump(user))
-    
+
 
 @bp.route('/login', methods=['POST'])
 def login():

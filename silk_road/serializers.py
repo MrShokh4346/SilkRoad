@@ -3,6 +3,11 @@ from silk_road.models import *
 import re
 
 
+class ProfilePhotoSerializer(Schema):
+    id = fields.Integer(dump_only=True)
+    base = fields.String(required=True)
+
+
 class UserSerializer(Schema):
     id = fields.Integer(dump_only=True)
     first_name = fields.String(required=True)
@@ -11,7 +16,8 @@ class UserSerializer(Schema):
     password = fields.String(required=True, load_only=True)
     phone = fields.String(required=True)
     created = fields.DateTime(dump_only=True)
-    image = fields.String()
+    photo = fields.Nested(ProfilePhotoSerializer, dump_only=True, required=True, many=True)
+
 
     @post_load
     def make_object(self, data, **kwargs):
@@ -39,15 +45,18 @@ class CategorySerializer(Schema):
     id = fields.Integer(dump_only=True)
     name = fields.String(required=True)
 
-category_schema = CategorySerializer(many=True)
+category_schema = CategorySerializer()
+categories_schema = CategorySerializer(many=True)
+
 
 
 class SubcategorySerializer(Schema):
     id = fields.Integer(dump_only=True)
     name = fields.String(required=True)
-    category = fields.Nested(CategorySerializer, required=True)
 
-subcategory_schema = SubcategorySerializer(many=True)
+subcategory_schema = SubcategorySerializer()
+subcategories_schema = SubcategorySerializer(many=True)
+
 
 
 class WeightSerializer(Schema):

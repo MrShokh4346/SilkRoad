@@ -1,4 +1,4 @@
-from flask import jsonify, request, redirect
+from flask import jsonify, request, redirect, url_for
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint
 from silk_road.api import bp 
@@ -15,7 +15,7 @@ from silk_road import UPLOAD_FOLDER
 import os
 
 
-@bp.route('/products', methods=['GET'])
+@bp.route('/products', methods=['GET'])#
 def products():
     products = Product.query.all()
     data = []
@@ -26,7 +26,7 @@ def products():
     return jsonify(data)
 
 
-@bp.route('/product-by-subcategory')
+@bp.route('/product-by-subcategory')#
 def product_by_subcategory():
     subcategory_id = request.args.get('subcategory_id')
     products = Product.query.filter_by(subcategory_id=subcategory_id).all()
@@ -38,7 +38,7 @@ def product_by_subcategory():
     return jsonify(data), 200
 
 
-@bp.route('/product-by-id', methods=['GET'])
+@bp.route('/product-by-id', methods=['GET'])#
 def product_by_id():
     product_id = request.args.get('product_id')
     product = product_by_id_schema.dump(db.get_or_404(Product, product_id))
@@ -46,7 +46,7 @@ def product_by_id():
     return jsonify(product)
 
 
-@bp.route('/add-product', methods=['POST'])
+@bp.route('/add-product', methods=['POST'])#
 @jwt_required()
 def add_product():
     data = request.get_json()
@@ -84,7 +84,7 @@ def add_product():
     return jsonify(product_schema.dump(product))  
 
 
-@bp.route('/product', methods=['PUT', 'PATCH', 'DELETE'])
+@bp.route('/product', methods=['PUT', 'PATCH', 'DELETE'])#
 @jwt_required()
 def product():
     if request.method == 'PUT' or request.method == 'PATCH':
@@ -138,7 +138,7 @@ def product():
         return jsonify(msg="Product deleted")
 
 
-@bp.route('/add-photo', methods=['POST'])
+@bp.route('/add-photo', methods=['POST'])#
 @jwt_required()
 def add_photo():
     if 'photo' not in request.files:
@@ -161,13 +161,13 @@ def add_photo():
         return jsonify(photo=ph.base)
 
 
-@bp.route('/get-photo/<string:filename>')
+@bp.route('/get-photo/<string:filename>')#
 def get_photo(filename):
     photo = Photo.query.filter_by(base=filename).first_or_404()
     return send_from_directory(f"../{UPLOAD_FOLDER}",filename)
 
 
-@bp.route('/delete-photo/<string:filename>', methods=['DELETE'])
+@bp.route('/delete-photo/<string:filename>', methods=['DELETE'])#
 @jwt_required()
 def delete_photo(filename):
     photo = Photo.query.filter_by(base=filename).first_or_404()
@@ -201,13 +201,180 @@ def comment(product_id):
     return jsonify(msg="Commented"), 200
 
 
-@bp.route('/get-category')
+@bp.route('/get-category')#
 def get_category():
+    id = request.args.get('category_id')
+    if id:
+        category = db.get_or_404(Category, id)
+        subcategories = Subcategory.query.filter_by(category_id=category.id).all()
+        data = category_schema.dump(category)
+        data['subcategories'] = subcategories_schema.dump(subcategories) if subcategories else None
+        return jsonify(data)
     category = Category.query.all()
-    return jsonify(category_schema.dump(category))
+    data = []
+    for c in category:
+        subcategory = Subcategory.query.filter_by(category_id=c.id).all()
+        data.append({
+            "id":c.id,
+            "category":c.name,
+            "subcategories":subcategories_schema.dump(subcategory)
+        })
+    return jsonify(data)
 
 
-@bp.route('/get-subcategory')
+@bp.route('/category', methods=['POST', 'PUT', 'PATCH', 'DELETE'])#
+@jwt_required()
+def category():
+    id = request.args.get('category_id')
+    if request.method == 'POST':
+        category = Category(
+            name = request.get_json().get('name')
+        )
+        db.session.add(category)
+        db.session.commit()
+        return redirect(f'get-category')
+    elif request.method == 'PUT' or request.method == 'PATCH':
+        category = db.get_or_404(Category, id)
+        category.name = request.get_json().get('name')
+        db.session.commit()
+        return jsonify(msg='Success')
+    else:
+        category = db.get_or_404(Category, id)
+        db.session.delete(category)
+        db.session.commit()
+        return jsonify(msg='Deleted')
+
+
+@bp.route('/get-subcategory')#
 def get_subcategory():
+    id = request.args.get('subcategory_id')
+    if id:
+        subcategory = db.get_or_404(Subcategory, id)
+        return jsonify(subcategories_schema.dump(subcategory))
     subcategory = Subcategory.query.all()
-    return jsonify(subcategory_schema.dump(subcategory))
+    return jsonify(subcategories_schema.dump(subcategory))
+
+
+@bp.route('/subcategory', methods=['POST', "PUT", 'PATCH', 'DELETE'])
+def subcategory():
+    id = request.args.get('subcategory_id')
+    if request.method == 'POST':
+        subcategory = Subcategory(
+            name = request.get_json().get('name'),
+            category_id = request.get_json().get('category_id')
+        )
+        db.session.add(subcategory)
+        db.session.commit()
+        return jsonify(subcategories_schema.dump(subcategory))
+    elif request.method == 'PUT' or request.method == 'PATCH':
+        subcategory = db.get_or_404(Subcategory, id)
+        subcategory.name = request.get_json().get('name')
+        db.session.commit()
+        return jsonify(msg='Success')
+    else:
+        subcategory = db.get_or_404(Subcategory, id)
+        db.session.delete(subcategory)
+        db.session.commit()
+        return jsonify(msg='Deleted')
+
+
+@bp.route('/card', methods=['POST', 'GET', 'PUT', 'PATCH'])
+@jwt_required()
+def card():
+    user_id = get_jwt_identity()
+    if request.method == 'GET':
+        orders = Card.query.filter_by(user_id=user_id).all()
+        data = []
+        for order in orders:
+            product = product_by_id_schema.dump(db.get_or_404(Product, order.product_id))
+            data.append({
+                "id":order.id,
+                "quantity":order.quantity,
+                "color":order.color,
+                "size":order.size,
+                "weight":order.weight,
+                "product":product
+            })
+        return jsonify(data)
+    elif request.method == "POST":
+        datas = request.get_json()
+        for data in datas:
+            card = Card(
+                product_id = data.get('product_id'),
+                user_id = user_id,
+                quantity = data.get('quantity'),
+                color = data.get('color'),
+                size = data.get('size'),
+                weight = data.get('weight')
+            )
+            db.session.add(card)
+        db.session.commit()
+        return jsonify(msg="Success"), 201
+    elif request.method == 'PUT' or request.method == 'PATCH':
+        product_id = request.args.get('product_id')
+        order = Card.query.get(product_id)
+        order.quantity = request.get_json().get('quantity')
+        db.session.commit()
+        return jsonify(msg='Success')
+
+
+@bp.route('/user', methods=['GET', 'PUT', 'PATCH', 'DELETE'])
+@jwt_required()
+def user():
+    id  = get_jwt_identity()
+    if request.method == 'GET':
+        user = db.get_or_404(User, id)      
+        return jsonify(user_schema.dump(user))
+    elif request.method == 'PUT' or request.method == 'PATCH':
+        user = db.get_or_404(User, id)      
+        user.first_name = request.get_json().get('first_name')
+        user.last_name = request.get_json().get('last_name')
+        db.session.commit()
+        return jsonify(user_schema.dump(user))
+    else:
+        user = db.get_or_404(User, id)      
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify(msg="Deleted")
+
+
+@bp.route('/add-profile-photo', methods=['POST'])#
+@jwt_required()
+def add_profile_photo():
+    id = get_jwt_identity()
+    user = db.get_or_404(User, id)
+    if 'photo' not in request.files:
+        return jsonify({"msg":"No file part"})
+    photo = request.files['photo']
+    product_id = request.args.get('user_id')
+    if photo.filename == '':
+        return jsonify({'msg':'No file selected for uploading'})
+    if photo and allowed_file(photo.filename):
+        photoname = secure_filename(photo.filename)
+        ft = photoname.rsplit('.', 1)[1].lower()
+        photo_name = str(uuid1()) + '.' + ft
+        ph = ProfilePhoto(
+            user_id = user.id,
+            base = photo_name, 
+        )
+        db.session.add(ph)
+        db.session.commit()
+        photo.save(os.path.join(UPLOAD_FOLDER, photo_name))
+        return jsonify(photo=ph.base)
+
+
+@bp.route('/delete-profile-photo/<string:filename>', methods=['DELETE'])#
+@jwt_required()
+def delete_profile__photo(filename):
+    photo = ProfilePhoto.query.filter_by(base=filename).first_or_404()
+    os.remove(UPLOAD_FOLDER + filename)
+    db.session.delete(photo)
+    db.session.commit()
+    return jsonify(msg="Deleted")
+
+
+
+    
+
+    
+
