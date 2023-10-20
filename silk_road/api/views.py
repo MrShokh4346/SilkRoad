@@ -167,6 +167,13 @@ def get_photo(filename):
     return send_from_directory(f"../{UPLOAD_FOLDER}",filename)
 
 
+@bp.route('/get-profile-photo/<string:filename>')#
+def get_profile_photo(filename):
+    photo = ProfilePhoto.query.filter_by(base=filename).first_or_404()
+    return send_from_directory(f"../{UPLOAD_FOLDER}",filename)
+
+
+
 @bp.route('/delete-photo/<string:filename>', methods=['DELETE'])#
 @jwt_required()
 def delete_photo(filename):
@@ -245,12 +252,12 @@ def category():
         return jsonify(msg='Deleted')
 
 
-@bp.route('/get-subcategory')#
+@bp.route('/get-subcategory')
 def get_subcategory():
     id = request.args.get('subcategory_id')
     if id:
         subcategory = db.get_or_404(Subcategory, id)
-        return jsonify(subcategories_schema.dump(subcategory))
+        return jsonify(subcategory_schema.dump(subcategory))
     subcategory = Subcategory.query.all()
     return jsonify(subcategories_schema.dump(subcategory))
 
@@ -265,7 +272,7 @@ def subcategory():
         )
         db.session.add(subcategory)
         db.session.commit()
-        return jsonify(subcategories_schema.dump(subcategory))
+        return jsonify(subcategory_schema.dump(subcategory))
     elif request.method == 'PUT' or request.method == 'PATCH':
         subcategory = db.get_or_404(Subcategory, id)
         subcategory.name = request.get_json().get('name')
