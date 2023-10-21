@@ -380,6 +380,24 @@ def delete_profile__photo(filename):
     return jsonify(msg="Deleted")
 
 
+@bp.route('/shop-history')
+@jwt_required()
+def shop_history():
+    id = get_jwt_identity()
+    user = db.get_or_404(User, id)
+    orders = Card.query.filter(Card.payed==True and Card.user_id==user_id).all()
+    data = []
+    for order in orders:
+        product = product_by_id_schema.dump(db.get_or_404(Product, order.product_id))
+        data.append({
+            "id":order.id,
+            "quantity":order.quantity,
+            "color":order.color,
+            "size":order.size,
+            "weight":order.weight,
+            "product":product
+        })
+    return jsonify(data)
 
     
 

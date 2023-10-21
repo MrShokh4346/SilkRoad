@@ -60,8 +60,6 @@ class Product(db.Model):
     condition = db.Column(db.String)
     discount = db.Column(db.Integer)
     design = db.Column(db.String)
-    payed = db.Column(db.Boolean, default=False)
-    done = db.Column(db.Boolean, default=False)
     use = db.Column(db.String)
     weight = db.relationship('Weight', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
     price = db.Column(db.Float)
@@ -119,6 +117,8 @@ class Card(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete='CASCADE'), nullable=False)
     quantity = db.Column(db.Integer)
     color = db.Column(db.String)
+    done = db.Column(db.Boolean, default=False)
+    payed = db.Column(db.Boolean, default=False)
     size = db.Column(db.String)
     weight = db.Column(db.String)
 
