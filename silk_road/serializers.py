@@ -126,13 +126,3 @@ product_schemas = ProductSerializer(many=True)
 product_schema = ProductSerializer()
 
 
-class CardSerializer(Schema):
-    id = fields.Integer(dump_only=True)
-    product = fields.Nested(ProductSerializer, dump_only=True, required=True, many=True)
-    quantity = fields.Integer()
-    color = fields.Integer()
-    size = fields.Integer()
-    weight = fields.Integer()
-
-card_schema = CardSerializer()
-

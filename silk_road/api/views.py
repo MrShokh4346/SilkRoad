@@ -1,7 +1,7 @@
 from flask import jsonify, request, redirect, url_for
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint
-from silk_road.api import bp 
+from silk_road.api import bp
 from silk_road.models import *
 from silk_road import jwt
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, create_refresh_token, get_jwt
@@ -21,7 +21,7 @@ def products():
     data = []
     for product in products:
         d = product_schema.dump(product)
-        d['rating'] = Comment.query.with_entities(func.avg(Comment.rating)).filter(Comment.product_id==product.id).all()[0][0] 
+        d['rating'] = Comment.query.with_entities(func.avg(Comment.rating)).filter(Comment.product_id==product.id).all()[0][0]
         data.append(d)
     return jsonify(data)
 
@@ -33,7 +33,7 @@ def product_by_subcategory():
     data = []
     for product in products:
         d = product_schema.dump(product)
-        d['rating'] = Comment.query.with_entities(func.avg(Comment.rating)).filter(Comment.product_id==product.id).all()[0][0] 
+        d['rating'] = Comment.query.with_entities(func.avg(Comment.rating)).filter(Comment.product_id==product.id).all()[0][0]
         data.append(d)
     return jsonify(data), 200
 
@@ -42,7 +42,7 @@ def product_by_subcategory():
 def product_by_id():
     product_id = request.args.get('product_id')
     product = product_by_id_schema.dump(db.get_or_404(Product, product_id))
-    product['rating'] = Comment.query.with_entities(func.avg(Comment.rating)).filter(Comment.product_id==product_id).all()[0][0] 
+    product['rating'] = Comment.query.with_entities(func.avg(Comment.rating)).filter(Comment.product_id==product_id).all()[0][0]
     return jsonify(product)
 
 
@@ -81,7 +81,7 @@ def add_product():
             c = Color(name=cr, product_id=product.id)
             db.session.add(c)
             db.session.commit()
-    return jsonify(product_schema.dump(product))  
+    return jsonify(product_schema.dump(product))
 
 
 @bp.route('/product', methods=['PUT', 'PATCH', 'DELETE'])#
@@ -153,7 +153,7 @@ def add_photo():
         photo_name = str(uuid1()) + '.' + ft
         ph = Photo(
             product_id = product_id,
-            base = photo_name, 
+            base = photo_name,
         )
         db.session.add(ph)
         db.session.commit()
@@ -182,7 +182,7 @@ def delete_photo(filename):
     db.session.delete(photo)
     db.session.commit()
     return jsonify(msg="Deleted")
-    
+
 
 @bp.route('/comment/<product_id>', methods=['POST'])
 def comment(product_id):
@@ -304,7 +304,8 @@ def card():
             })
         return jsonify(data)
     elif request.method == "POST":
-        datas = request.get_json()
+        datas = []
+        datas.extend(request.get_json())
         for data in datas:
             card = Card(
                 product_id = data.get('product_id'),
@@ -330,16 +331,16 @@ def card():
 def user():
     id  = get_jwt_identity()
     if request.method == 'GET':
-        user = db.get_or_404(User, id)      
+        user = db.get_or_404(User, id)
         return jsonify(user_schema.dump(user))
     elif request.method == 'PUT' or request.method == 'PATCH':
-        user = db.get_or_404(User, id)      
-        user.first_name = request.get_json().get('first_name')
-        user.last_name = request.get_json().get('last_name')
+        user = db.get_or_404(User, id)
+        user.first_name = request.get_json().get('first_name', user.first_name)
+        user.last_name = request.get_json().get('last_name', user.last_name)
         db.session.commit()
         return jsonify(user_schema.dump(user))
     else:
-        user = db.get_or_404(User, id)      
+        user = db.get_or_404(User, id)
         db.session.delete(user)
         db.session.commit()
         return jsonify(msg="Deleted")
@@ -362,7 +363,7 @@ def add_profile_photo():
         photo_name = str(uuid1()) + '.' + ft
         ph = ProfilePhoto(
             user_id = user.id,
-            base = photo_name, 
+            base = photo_name,
         )
         db.session.add(ph)
         db.session.commit()
@@ -399,7 +400,7 @@ def shop_history():
         })
     return jsonify(data)
 
-    
 
-    
+
+
 
