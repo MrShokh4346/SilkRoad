@@ -44,19 +44,10 @@ user_schema = UserSerializer()
 class CategorySerializer(Schema):
     id = fields.Integer(dump_only=True)
     name = fields.String(required=True)
+    icon = fields.String(required=True)
 
 category_schema = CategorySerializer()
 categories_schema = CategorySerializer(many=True)
-
-
-
-class SubcategorySerializer(Schema):
-    id = fields.Integer(dump_only=True)
-    name = fields.String(required=True)
-
-subcategory_schema = SubcategorySerializer()
-subcategories_schema = SubcategorySerializer(many=True)
-
 
 
 class WeightSerializer(Schema):
@@ -102,7 +93,7 @@ class ProductByIdSerializer(Schema):
     price = fields.Integer(required=True)
     old_price = fields.Integer()
     score = fields.Integer(required=True)
-    subcategory = fields.Nested(SubcategorySerializer, dump_only=True, required=True)
+    category = fields.Nested(CategorySerializer, dump_only=True, required=True)
     comment = fields.Nested(CommentSerialize, dump_only=True, required=True, many=True)
     weight = fields.Nested(WeightSerializer, dump_only=True, required=True, many=True)
     photo = fields.Nested(PhotoSerializer, dump_only=True, required=True, many=True)
@@ -119,7 +110,7 @@ class ProductSerializer(Schema):
     price = fields.Integer(required=True)
     old_price = fields.Integer()
     score = fields.Integer(required=True)
-    subcategory = fields.Nested(SubcategorySerializer, dump_only=True, required=True)
+    category = fields.Nested(CategorySerializer, dump_only=True, required=True)
     photo = fields.Nested(PhotoSerializer, dump_only=True, required=True, many=True)
 
 product_schemas = ProductSerializer(many=True)

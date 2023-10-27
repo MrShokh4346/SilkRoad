@@ -17,7 +17,23 @@ import os
 
 @bp.route('/products', methods=['GET'])#
 def products():
-    products = Product.query.all()
+    page_id = int(request.args.get('page', 1))
+    products =db.paginate(db.select(Product).order_by(Product.created.desc()), page=page_id, per_page=10)
+    # Product.query.order_by(Product.created.desc())   
+    # products = Product.query.all()
+    data = []
+    if products:
+        for product in products:
+            d = product_schema.dump(product)
+            d['rating'] = Comment.query.with_entities(func.avg(Comment.rating)).filter(Comment.product_id==product.id).all()[0][0]
+            data.append(d)
+        return jsonify(data)
+    return jsonify(data)
+
+
+@bp.route('/top-products', methods=['GET'])#
+def top_products():
+    products =db.session.execute(db.select(Product).filter(Product.top==True).order_by(Product.created.desc())).scalars()
     data = []
     for product in products:
         d = product_schema.dump(product)
@@ -26,31 +42,48 @@ def products():
     return jsonify(data)
 
 
-@bp.route('/product-by-subcategory')#
-def product_by_subcategory():
-    subcategory_id = request.args.get('subcategory_id')
-    products = Product.query.filter_by(subcategory_id=subcategory_id).all()
+@bp.route('/liked-products', methods=['POST'])#
+def liked_products():
+    ids = request.get_json().get("product_ids")
+    products =db.session.execute(db.select(Product).filter(Product.id.in_(ids)).order_by(Product.created.desc())).scalars()
     data = []
     for product in products:
         d = product_schema.dump(product)
         d['rating'] = Comment.query.with_entities(func.avg(Comment.rating)).filter(Comment.product_id==product.id).all()[0][0]
         data.append(d)
-    return jsonify(data), 200
+    return jsonify(data)
+
+
+@bp.route('/product-by-category')#
+def product_by_category():
+    page_id = int(request.args.get('page', 1))
+    category_id = request.args.get('category_id')
+    products =db.paginate(db.select(Product).filter_by(category_id=category_id).order_by(Product.created.desc()), page=page_id, per_page=10)
+    data = []
+    if products:
+        for product in products:
+            d = product_schema.dump(product)
+            d['rating'] = Comment.query.with_entities(func.avg(Comment.rating)).filter(Comment.product_id==product.id).all()[0][0]
+            data.append(d)
+        return jsonify(data), 200
+    return jsonify(data)
 
 
 @bp.route('/product-by-id', methods=['GET'])#
 def product_by_id():
     product_id = request.args.get('product_id')
-    product = product_by_id_schema.dump(db.get_or_404(Product, product_id))
-    product['rating'] = Comment.query.with_entities(func.avg(Comment.rating)).filter(Comment.product_id==product_id).all()[0][0]
-    return jsonify(product)
+    product = db.get_or_404(Product, product_id)
+    data = product_by_id_schema.dump(product)
+    data['rating'] = Comment.query.with_entities(func.avg(Comment.rating)).filter(Comment.product_id==product_id).all()[0][0]
+    data['others'] = product_schemas.dump(db.paginate(db.select(Product).filter_by(category_id=product.category_id).order_by(Product.created.desc()), page=1, per_page=10))
+    return jsonify(data)
 
 
 @bp.route('/add-product', methods=['POST'])#
 @jwt_required()
 def add_product():
     data = request.get_json()
-    subcategory = Subcategory.query.get(data.get('subcategory_id'))
+    category = Category.query.get(data.get('category_id'))
     product = Product(
         name = data.get('name'),
         material = data.get('material'),
@@ -58,11 +91,11 @@ def add_product():
         care = data.get('care'),
         condition = data.get('condition'),
         design = data.get('design'),
-        use = data.get('use'),
+        top = data.get('top'),
         discount = data.get('discount'),
         price = data.get('price'),
         old_price = data.get('old_price'),
-        subcategory_id = data.get('subcategory_id')
+        category_id = data.get('category_id')
     )
     db.session.add(product)
     db.session.commit()
@@ -96,11 +129,11 @@ def product():
         product.care = data.get('care', product.care)
         product.condition = data.get('condition', product.condition)
         product.design = data.get('design', product.design)
-        product.use = data.get('use', product.use)
+        product.top = data.get('top', product.top)
         product.discount = data.get('discount', product.discount)
         product.price = data.get('price', product.price)
         product.old_price = data.get('old_price', product.old_price)
-        product.subcategory_id = data.get('subcategory_id', product.subcategory_id)
+        product.category_id = data.get('category_id', product.category_id)
         if data.get('size') is not None:
             old_s = Size.query.filter_by(product_id=product.id).all()
             for o_s in old_s:
@@ -173,7 +206,6 @@ def get_profile_photo(filename):
     return send_from_directory(f"../{UPLOAD_FOLDER}",filename)
 
 
-
 @bp.route('/delete-photo/<string:filename>', methods=['DELETE'])#
 @jwt_required()
 def delete_photo(filename):
@@ -213,76 +245,9 @@ def get_category():
     id = request.args.get('category_id')
     if id:
         category = db.get_or_404(Category, id)
-        subcategories = Subcategory.query.filter_by(category_id=category.id).all()
-        data = category_schema.dump(category)
-        data['subcategories'] = subcategories_schema.dump(subcategories) if subcategories else None
-        return jsonify(data)
+        return jsonify(category_schema.dump(category))
     category = Category.query.all()
-    data = []
-    for c in category:
-        subcategory = Subcategory.query.filter_by(category_id=c.id).all()
-        data.append({
-            "id":c.id,
-            "category":c.name,
-            "subcategories":subcategories_schema.dump(subcategory)
-        })
-    return jsonify(data)
-
-
-@bp.route('/category', methods=['POST', 'PUT', 'PATCH', 'DELETE'])#
-@jwt_required()
-def category():
-    id = request.args.get('category_id')
-    if request.method == 'POST':
-        category = Category(
-            name = request.get_json().get('name')
-        )
-        db.session.add(category)
-        db.session.commit()
-        return redirect(f'get-category')
-    elif request.method == 'PUT' or request.method == 'PATCH':
-        category = db.get_or_404(Category, id)
-        category.name = request.get_json().get('name')
-        db.session.commit()
-        return jsonify(msg='Success')
-    else:
-        category = db.get_or_404(Category, id)
-        db.session.delete(category)
-        db.session.commit()
-        return jsonify(msg='Deleted')
-
-
-@bp.route('/get-subcategory')
-def get_subcategory():
-    id = request.args.get('subcategory_id')
-    if id:
-        subcategory = db.get_or_404(Subcategory, id)
-        return jsonify(subcategory_schema.dump(subcategory))
-    subcategory = Subcategory.query.all()
-    return jsonify(subcategories_schema.dump(subcategory))
-
-
-@bp.route('/subcategory', methods=['POST', "PUT", 'PATCH', 'DELETE'])
-def subcategory():
-    id = request.args.get('subcategory_id')
-    if request.method == 'POST':
-        subcategory = Subcategory(
-            name = request.get_json().get('name'),
-            category_id = request.get_json().get('category_id')
-        )
-        db.session.add(subcategory)
-        db.session.commit()
-        return jsonify(subcategory_schema.dump(subcategory))
-    elif request.method == 'PUT' or request.method == 'PATCH':
-        subcategory = db.get_or_404(Subcategory, id)
-        subcategory.name = request.get_json().get('name')
-        db.session.commit()
-        return jsonify(msg='Success')
-    else:
-        subcategory = db.get_or_404(Subcategory, id)
-        db.session.delete(subcategory)
-        db.session.commit()
-        return jsonify(msg='Deleted')
+    return jsonify(categories_schema.dump(category))
 
 
 @bp.route('/card', methods=['POST', 'GET', 'PUT', 'PATCH'])
@@ -294,13 +259,15 @@ def card():
         data = []
         for order in orders:
             product = product_by_id_schema.dump(db.get_or_404(Product, order.product_id))
+            user = user_schema.dump(db.get_or_404(User, order.user_id))
             data.append({
                 "id":order.id,
                 "quantity":order.quantity,
                 "color":order.color,
                 "size":order.size,
                 "weight":order.weight,
-                "product":product
+                "product":product,
+                "user":user
             })
         return jsonify(data)
     elif request.method == "POST":
@@ -361,6 +328,10 @@ def add_profile_photo():
         photoname = secure_filename(photo.filename)
         ft = photoname.rsplit('.', 1)[1].lower()
         photo_name = str(uuid1()) + '.' + ft
+        old_photo = ProfilePhoto.query.filter_by(user_id=user.id).first()
+        if old_photo:
+            db.session.delete(old_photo)
+            os.remove(UPLOAD_FOLDER + old_photo.base)
         ph = ProfilePhoto(
             user_id = user.id,
             base = photo_name,
@@ -386,7 +357,7 @@ def delete_profile__photo(filename):
 def shop_history():
     id = get_jwt_identity()
     user = db.get_or_404(User, id)
-    orders = Card.query.filter(Card.payed==True and Card.user_id==user_id).all()
+    orders = Card.query.filter(Card.payed==True, Card.user_id==user_id).all()
     data = []
     for order in orders:
         product = product_by_id_schema.dump(db.get_or_404(Product, order.product_id))
@@ -400,6 +371,20 @@ def shop_history():
         })
     return jsonify(data)
 
+
+@bp.route('/search')
+def search():
+    search = request.args.get('s')
+    products = Product.query.filter(Product.name.like(f'%{search}%')).all()
+    if products:
+        data = []
+        for product in products:
+            d = product_schema.dump(product)
+            d['rating'] = Comment.query.with_entities(func.avg(Comment.rating)).filter(Comment.product_id==product.id).all()[0][0]
+            data.append(d)
+        return jsonify(data)
+    else:
+        return jsonify(msg="Found nothing :(")
 
 
 

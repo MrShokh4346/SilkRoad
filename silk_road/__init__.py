@@ -7,6 +7,7 @@ from flask_jwt_extended import JWTManager
 from dotenv.main import load_dotenv
 from flask_mail import Mail
 import os
+from datetime import timedelta
 
 load_dotenv()
 
@@ -34,6 +35,9 @@ def create_app():
     app = Flask(__name__)
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///test.db"
     app.config["JWT_SECRET_KEY"] = os.environ['JWT_SECRET_KEY']
+    app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
+    app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
     app.config["SECRET_KEY"] = os.environ['SECRET_KEY']
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -53,9 +57,20 @@ def create_app():
 
     from silk_road.auth import bp as auth_bp
     app.register_blueprint(auth_bp, url_prefix="/auth/v1")
-    
+
     from silk_road.api import bp as api_bp
     app.register_blueprint(api_bp, url_prefix="/api/v1")
+
+    from silk_road.models import Category
+    @app.cli.command('add-category')
+    def add_category():
+        name = input("name: ")
+        icon = input("icon: ")
+        category = Category(name=name, icon=icon)
+        with app.app_context():
+            db.session.add(category)
+            db.session.commit()
+
 
     from silk_road import models
     with app.app_context():

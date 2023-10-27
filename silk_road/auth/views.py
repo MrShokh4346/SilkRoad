@@ -21,11 +21,14 @@ def refresh():
 
 @bp.route('/register', methods=['POST'])
 def register():
-    data = request.get_json()
-    user = User(**data)
-    db.session.add(user)
-    db.session.commit()
-    return jsonify(user_schema.dump(user))
+    try:
+        data = request.get_json()
+        user = User(**data)
+        db.session.add(user)
+        db.session.commit()
+        return jsonify(user_schema.dump(user))
+    except AssertionError as err:
+        return jsonify(msg=f"{err}")
 
 
 @bp.route('/login', methods=['POST'])

@@ -12,6 +12,7 @@ class User(db.Model):
     email = db.Column(db.String, nullable=False, unique=True)
     password_hash = db.Column(db.String, nullable=False)
     code = db.Column(db.Integer)
+    is_admin = db.Column(db.Boolean, default=False)
     expire_date = db.Column(db.DateTime)
     phone = db.Column(db.String, nullable=False)
     created = db.Column(db.DateTime, default=datetime.now())
@@ -58,14 +59,15 @@ class Product(db.Model):
     color = db.relationship('Color', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
     care = db.Column(db.String)
     condition = db.Column(db.String)
+    created = db.Column(db.DateTime, default=datetime.now())
     discount = db.Column(db.Integer)
     design = db.Column(db.String)
-    use = db.Column(db.String)
+    top = db.Column(db.Boolean, default=False)
     weight = db.relationship('Weight', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
     price = db.Column(db.Float)
     old_price = db.Column(db.Float)
     photo = db.relationship('Photo', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
-    subcategory_id = db.Column(db.Integer, db.ForeignKey("subcategory.id"))
+    category_id = db.Column(db.Integer, db.ForeignKey("category.id"))
     card = db.relationship('Card', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
     wishlist = db.relationship('Wishlist', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
     comment = db.relationship('Comment', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
@@ -132,14 +134,8 @@ class Wishlist(db.Model):
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
-    subcategory = db.relationship('Subcategory', backref=backref('category'), lazy=True)
-
-
-class Subcategory(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    product = db.relationship('Product', backref=backref('subcategory'), lazy=True)
-    category_id = db.Column(db.Integer, db.ForeignKey("category.id"))
+    icon = db.Column(db.String)
+    product = db.relationship('Product', backref=backref('category'), lazy=True)
 
 
 class BlacklistToken(db.Model):
