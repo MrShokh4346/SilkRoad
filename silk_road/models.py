@@ -64,8 +64,8 @@ class Product(db.Model):
     design = db.Column(db.String)
     top = db.Column(db.Boolean, default=False)
     weight = db.relationship('Weight', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
-    price = db.Column(db.Float)
-    old_price = db.Column(db.Float)
+    price = db.Column(db.Integer)
+    old_price = db.Column(db.Integer)
     photo = db.relationship('Photo', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
     category_id = db.Column(db.Integer, db.ForeignKey("category.id"))
     card = db.relationship('Card', backref=backref('product', passive_deletes=True), cascade='all, delete', lazy=True)
@@ -136,6 +136,15 @@ class Category(db.Model):
     name = db.Column(db.String)
     icon = db.Column(db.String)
     product = db.relationship('Product', backref=backref('category'), lazy=True)
+
+
+class OrderedProducts(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_ids = db.Column(db.String())
+    quantities = db.Column(db.String())
+    price_ids = db.Column(db.String())
+    total_price = db.Column(db.Integer())
+    customer_id = db.Column(db.String())
 
 
 class BlacklistToken(db.Model):

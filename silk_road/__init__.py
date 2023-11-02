@@ -7,6 +7,7 @@ from flask_jwt_extended import JWTManager
 from dotenv.main import load_dotenv
 from flask_mail import Mail
 import os
+import stripe
 from datetime import timedelta
 
 load_dotenv()
@@ -28,7 +29,6 @@ migrate = Migrate()
 ma = Marshmallow()
 jwt = JWTManager()
 mail = Mail()
-
 
 
 def create_app():
@@ -54,12 +54,16 @@ def create_app():
     migrate.init_app(app, db)
     jwt.init_app(app)
     mail.init_app(app)
+    stripe.api_key = os.environ['STRIPE_TEST_KEY']
 
     from silk_road.auth import bp as auth_bp
     app.register_blueprint(auth_bp, url_prefix="/auth/v1")
 
     from silk_road.api import bp as api_bp
     app.register_blueprint(api_bp, url_prefix="/api/v1")
+
+    from silk_road.payment import bp as payment_bp
+    app.register_blueprint(payment_bp, url_prefix="/payment/v1")
 
     from silk_road.models import Category
     @app.cli.command('add-category')

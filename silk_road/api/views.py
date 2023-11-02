@@ -279,8 +279,7 @@ def card():
                 user_id = user_id,
                 quantity = data.get('quantity'),
                 color = data.get('color'),
-                size = data.get('size'),
-                weight = data.get('weight')
+                size = data.get('size')
             )
             db.session.add(card)
         db.session.commit()
