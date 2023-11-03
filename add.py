@@ -1,32 +1,32 @@
-# from silk_road import db, create_app
-# from silk_road.models import *
-# app = create_app()
+from silk_road import db, create_app
+from silk_road.models import *
+app = create_app()
 
-# r = Category(name="closes")
-# with app.app_context():
-#     db.session.add(r)
-#     db.session.commit()
+r = Category(name="closes")
+with app.app_context():
+    db.session.add(r)
+    db.session.commit()
 
-# r = Category(name="plates")
-# with app.app_context():
-#     db.session.add(r)
-#     db.session.commit()
+r = Category(name="plates")
+with app.app_context():
+    db.session.add(r)
+    db.session.commit()
 
 
-# p = Product(
-#         name="shirt",
-#         material="cutton",
-#         description="this is shirt",
-#         care="washed +25",
-#         condition="new",
-#         design="ef",
-#         price=123,
-#         old_price=456,
-#         category_id=1
-# )
-# with app.app_context():
-#     db.session.add(p)
-#     db.session.commit()
+p = Product(
+        name="shirt",
+        material="cutton",
+        description="this is shirt",
+        care="washed +25",
+        condition="new",
+        design="ef",
+        price=123,
+        old_price=456,
+        category_id=1
+)
+with app.app_context():
+    db.session.add(p)
+    db.session.commit()
 
 
 # r = Photo(base="photo", product_id=1)

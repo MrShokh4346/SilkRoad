@@ -16,16 +16,19 @@ def orders():
     user = db.get_or_404(User, id)
     data = request.get_json()
     total_price = 0
-    product_ids = ""
-    quantities = ""
-    price_ids = ""
 
     customer = stripe.Customer.create(
         email=user.email,
         name=user.first_name,
         phone=user.phone
     )
-    for product in data:
+    order = Order(
+            customer_id = customer.id
+        )
+    db.session.add(order)
+    db.session.commit()
+
+    for product in data.get('products'):
         pd = db.get_or_404(Product, product['product_id'])
         p = stripe.Product.create(
             name=pd.name,
@@ -35,7 +38,7 @@ def orders():
         total_price += unit_amount
         price = stripe.Price.create(
             product=p.id,
-            unit_amount=unit_amount,  # Amount in cents (e.g., $10.00 is 1000 cents)
+            unit_amount=unit_amount, 
             currency="gbp"
         )
 
@@ -44,45 +47,27 @@ def orders():
             user_id = id,
             quantity = product.get('quantity'),
             color = product.get('color'),
-            size = product.get('size')
+            size = product.get('size'),
+            order_id = order.id
         )
         db.session.add(card)
-        product_ids += f",{pd.id}" if product_ids != "" else f"{pd.id}"
-        price_ids += f",{price.id}" if price_ids != "" else f"{price.id}"
-        quantities += f",{product.get('quantity')}" if quantities != "" else f"{product.get('quantity')}"
-
-
-    orderedproducts = OrderedProducts(
-        product_ids = product_ids,
-        price_ids = price_ids,
-        quantities = quantities,
-        total_price = total_price,
-        customer_id = customer.id
-    )
-    db.session.add(orderedproducts)
+    if data.get('destination'):
+        order.destination = data.get('destination')
+    order.total_price=total_price
     db.session.commit()
-    return jsonify(order_id=orderedproducts.id)
+    return jsonify(order_id=order.id)
 
 
 @bp.route('/payment-method', methods=['POST'])
 def payment():
     data = request.get_json()
-    order = db.get_or_404(OrderedProducts, data.get('order_id'))
-    price_ids = order.price_ids.split(',')
-    quantities = order.quantities.split(',')
-    line_items = []
-    for price_id in price_ids:
-        quantity = quantities[price_ids.index(price_id)]
-        line_items.append({
-            'price': price_id,  
-            'quantity': quantity       
-        })
+    order = db.get_or_404(Order, data.get('order_id'))
     stripe.PaymentMethod.attach(
             data.get("payment_method"),
             customer=order.customer_id
         )
     payment_intent = stripe.PaymentIntent.create(
-        amount=order.total_price,  # The total amount for all products combined in cents
+        amount=order.total_price,  
         currency="usd",
         payment_method=data.get("payment_method"),
         customer=order.customer_id,
@@ -90,8 +75,9 @@ def payment():
         confirm=True,
         payment_method_types=["card"],
         description="Payment for multiple products",
-        # line_items=line_items  # List of line items, each representing a product and its price
     )
+    order.payment_intent_id = payment_intent.id
+    db.session.commit()
     return jsonify(msg="Ok")
 
 
@@ -109,9 +95,10 @@ def webhook():
 
     # Handle the event
     if event.type == 'payment_intent.succeeded':
-        payment_intent = event.data.object # contains a stripe.PaymentIntent
-        # Then define and call a method to handle the successful payment intent.
-        # handle_payment_intent_succeeded(payment_intent)
+        payment_intent = event.data.object
+        order = Order.query.filter_by(payment_intent_id=payment_intent.id).first()
+        order.payed = True
+        db.session.commit()
         print("payment_intent.succeeded")
         return jsonify(msg="Payment was succesfull")
     elif event.type == 'payment_method.attached':

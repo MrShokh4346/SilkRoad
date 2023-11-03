@@ -18,6 +18,7 @@ class User(db.Model):
     created = db.Column(db.DateTime, default=datetime.now())
     photo = db.relationship('ProfilePhoto', backref=backref('user', passive_deletes=True), cascade='all, delete', lazy=True)
     card = db.relationship('Card', backref=backref('user', passive_deletes=True), cascade='all, delete', lazy=True)
+    order = db.relationship('Order', backref=backref('user', passive_deletes=True), cascade='all, delete', lazy=True)
     comment = db.relationship('Comment', backref=backref('user', passive_deletes=True), cascade='all, delete', lazy=True)
 
     @property
@@ -47,7 +48,6 @@ class User(db.Model):
         if user:
             raise AssertionError('This phone  alredy exist')
         return phone
-
 
 
 class Product(db.Model):
@@ -113,38 +113,38 @@ class Color(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey("product.id", ondelete='CASCADE'), nullable=False)
 
 
-class Card(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey("product.id", ondelete='CASCADE'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete='CASCADE'), nullable=False)
-    quantity = db.Column(db.Integer)
-    color = db.Column(db.String)
-    done = db.Column(db.Boolean, default=False)
-    payed = db.Column(db.Boolean, default=False)
-    size = db.Column(db.String)
-    weight = db.Column(db.String)
-
-
 class Wishlist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey("product.id", ondelete='CASCADE'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete='CASCADE'), nullable=False)
 
 
+class Card(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id', ondelete='CASCADE'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id', ondelete='CASCADE'), nullable=False)
+    size = db.Column(db.String)
+    quantity = db.Column(db.Integer)
+    color = db.Column(db.String)
+
+
+class Order(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    card = db.relationship("Card", backref=backref('order', passive_deletes=True), cascade='all, delete', lazy=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    total_price = db.Column(db.Integer)
+    payed = db.Column(db.Boolean, default=False)
+    done = db.Column(db.Boolean, default=False)
+    payment_intent_id = db.Column(db.String)
+    destination = db.Column(db.String)
+
+
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
     icon = db.Column(db.String)
-    product = db.relationship('Product', backref=backref('category'), lazy=True)
-
-
-class OrderedProducts(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    product_ids = db.Column(db.String())
-    quantities = db.Column(db.String())
-    price_ids = db.Column(db.String())
-    total_price = db.Column(db.Integer())
-    customer_id = db.Column(db.String())
+    product = db.relationship("Product", backref=backref('category'), lazy=True)
 
 
 class BlacklistToken(db.Model):
