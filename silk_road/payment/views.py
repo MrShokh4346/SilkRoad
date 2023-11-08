@@ -17,12 +17,14 @@ def orders():
     data = request.get_json()
     total_price = 0
 
+    line_items = []
+
     customer = stripe.Customer.create(
         email=user.email,
         name=user.first_name,
         phone=user.phone
     )
-    order = Order(
+    order = Orders(
             customer_id = customer.id
         )
     db.session.add(order)
@@ -30,17 +32,25 @@ def orders():
 
     for product in data.get('products'):
         pd = db.get_or_404(Product, product['product_id'])
+
         p = stripe.Product.create(
             name=pd.name,
             description=pd.description
         )
+
         unit_amount = (pd.price if pd.price else pd.old_price) * 100
         total_price += unit_amount
+
         price = stripe.Price.create(
             product=p.id,
             unit_amount=unit_amount, 
             currency="gbp"
         )
+
+        line_items.append({
+            'price':price.id,
+            'quantity':product.get('quantity')
+        })
 
         card = Card(
             product_id = product.get('product_id'),
@@ -51,34 +61,33 @@ def orders():
             order_id = order.id
         )
         db.session.add(card)
+
     if data.get('destination'):
         order.destination = data.get('destination')
     order.total_price=total_price
     db.session.commit()
-    return jsonify(order_id=order.id)
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            line_items=line_items,
+            mode='payment',
+            currency='gbp',
+            customer=customer,
+            success_url="http://silkroaditc21.pythonanywhere.com/payment/v1/success",
+            cancel_url="http://silkroaditc21.pythonanywhere.com/payment/v1/fail",
+            )
+    except Exception as e:
+        return str(e)
+    return jsonify(checkout_session.url)
 
 
-@bp.route('/payment-method', methods=['POST'])
-def payment():
-    data = request.get_json()
-    order = db.get_or_404(Order, data.get('order_id'))
-    stripe.PaymentMethod.attach(
-            data.get("payment_method"),
-            customer=order.customer_id
-        )
-    payment_intent = stripe.PaymentIntent.create(
-        amount=order.total_price,  
-        currency="usd",
-        payment_method=data.get("payment_method"),
-        customer=order.customer_id,
-        setup_future_usage="off_session",
-        confirm=True,
-        payment_method_types=["card"],
-        description="Payment for multiple products",
-    )
-    order.payment_intent_id = payment_intent.id
-    db.session.commit()
-    return jsonify(msg="Ok")
+@bp.route('/success')
+def success():
+    return jsonify(msg="Success")
+
+
+@bp.route('/fail')
+def fail():
+    return jsonify(msg="Fail")
 
 
 @bp.route('/webhook', methods=['POST'])
@@ -95,20 +104,12 @@ def webhook():
 
     # Handle the event
     if event.type == 'payment_intent.succeeded':
-        payment_intent = event.data.object
-        order = Order.query.filter_by(payment_intent_id=payment_intent.id).first()
+        payment_intend = event.data.object
+        order = Orders.query.filter_by(customer_id=payment_intend.customer).first()
         order.payed = True
         db.session.commit()
         print("payment_intent.succeeded")
         return jsonify(msg="Payment was succesfull")
-    elif event.type == 'payment_method.attached':
-        payment_method = event.data.object # contains a stripe.PaymentMethod
-        
-        # Then define and call a method to handle the successful attachment of a PaymentMethod.
-        # handle_payment_method_attached(payment_method)
-        # ... handle other event types
-        print("payment_intent.attached")
-
     else:
         print('Unhandled event type {}'.format(event.type))
 

@@ -1,7 +1,7 @@
 from silk_road import db
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy.orm import validates 
-import re 
+from sqlalchemy.orm import validates
+import re
 from datetime import datetime
 from sqlalchemy.orm import backref
 
@@ -18,7 +18,7 @@ class User(db.Model):
     created = db.Column(db.DateTime, default=datetime.now())
     photo = db.relationship('ProfilePhoto', backref=backref('user', passive_deletes=True), cascade='all, delete', lazy=True)
     card = db.relationship('Card', backref=backref('user', passive_deletes=True), cascade='all, delete', lazy=True)
-    order = db.relationship('Order', backref=backref('user', passive_deletes=True), cascade='all, delete', lazy=True)
+    order = db.relationship('Orders', backref=backref('user', passive_deletes=True), cascade='all, delete', lazy=True)
     comment = db.relationship('Comment', backref=backref('user', passive_deletes=True), cascade='all, delete', lazy=True)
 
     @property
@@ -123,21 +123,22 @@ class Card(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('product.id', ondelete='CASCADE'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
-    order_id = db.Column(db.Integer, db.ForeignKey('order.id', ondelete='CASCADE'), nullable=False)
+    order_id = db.Column(db.Integer, db.ForeignKey('orders.id', ondelete='CASCADE'), nullable=False)
     size = db.Column(db.String)
     quantity = db.Column(db.Integer)
     color = db.Column(db.String)
 
 
-class Order(db.Model):
+class Orders(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    card = db.relationship("Card", backref=backref('order', passive_deletes=True), cascade='all, delete', lazy=True)
+    card = db.relationship("Card", backref=backref('orders', passive_deletes=True), cascade='all, delete', lazy=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
     total_price = db.Column(db.Integer)
     payed = db.Column(db.Boolean, default=False)
     done = db.Column(db.Boolean, default=False)
     payment_intent_id = db.Column(db.String)
     destination = db.Column(db.String)
+    date = db.Column(db.DateTime(), default=datetime.now())
 
 
 class Category(db.Model):
