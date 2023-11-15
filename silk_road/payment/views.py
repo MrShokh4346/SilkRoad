@@ -7,6 +7,7 @@ from silk_road import jwt
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, create_refresh_token, get_jwt
 from silk_road.serializers import *
 import stripe
+from silk_road.payment.utils import send_notification
 
 
 @bp.route('/orders', methods=['POST'])
@@ -25,6 +26,8 @@ def orders():
         phone=user.phone
     )
     order = Orders(
+            user_id = user.id,
+            user_email = user.email,
             customer_id = customer.id
         )
     db.session.add(order)
@@ -82,6 +85,7 @@ def orders():
 
 @bp.route('/success')
 def success():
+
     return jsonify(msg="Success")
 
 
@@ -108,9 +112,16 @@ def webhook():
         order = Orders.query.filter_by(customer_id=payment_intend.customer).first()
         order.payed = True
         db.session.commit()
-        print("payment_intent.succeeded")
+        user = User.query.get(order.user_id)
+        cards = Card.query.filter_by(order_id=order.id).all()
+        products = []
+        for card in cards:
+            products.append({
+                "name":card.product.name,
+                "color":card.color,
+                "size":card.size,
+            })
+        send_notification(user.email, products)
         return jsonify(msg="Payment was succesfull")
-    else:
-        print('Unhandled event type {}'.format(event.type))
-
+    
     return jsonify(msg="success")

@@ -19,7 +19,7 @@ import os
 def products():
     page_id = int(request.args.get('page', 1))
     products =db.paginate(db.select(Product).order_by(Product.created.desc()), page=page_id, per_page=10)
-    # Product.query.order_by(Product.created.desc())   
+    # Product.query.order_by(Product.created.desc())
     # products = Product.query.all()
     data = []
     if products:
@@ -217,9 +217,11 @@ def delete_photo(filename):
 
 
 @bp.route('/comment/<product_id>', methods=['POST'])
+@jwt_required()
 def comment(product_id):
+    id = get_jwt_identity()
     product = db.get_or_404(Product, product_id)
-    user = User.query.filter_by(email=request.get_json().get('email')).first()
+    user =db.get_or_404(User, id)
     if user:
         comment = Comment(
             body = request.get_json().get('body'),
@@ -227,14 +229,7 @@ def comment(product_id):
             user_id = user.id,
             author_email = user.email,
             rating = request.get_json().get('rating')
-        )
-    else:
-        comment = Comment(
-            body = request.get_json().get('body'),
-            product_id = product.id,
-            author_email = request.get_json().get('email'),
-            rating = request.get_json().get('rating')
-        )
+            )
     db.session.add(comment)
     db.session.commit()
     return jsonify(msg="Commented"), 200
@@ -279,7 +274,8 @@ def card():
                 user_id = user_id,
                 quantity = data.get('quantity'),
                 color = data.get('color'),
-                size = data.get('size')
+                size = data.get('size'),
+                weight = data.get('weight')
             )
             db.session.add(card)
         db.session.commit()
@@ -356,18 +352,26 @@ def delete_profile__photo(filename):
 def shop_history():
     id = get_jwt_identity()
     user = db.get_or_404(User, id)
-    orders = Card.query.filter(Card.payed==True, Card.user_id==user_id).all()
+    orders = Orders.query.filter_by(user_id=user.id).all()
+    # orders = Card.query.filter(Card.payed==True, Card.user_id==user_id).all()
     data = []
+    count = -1
     for order in orders:
-        product = product_by_id_schema.dump(db.get_or_404(Product, order.product_id))
         data.append({
-            "id":order.id,
-            "quantity":order.quantity,
-            "color":order.color,
-            "size":order.size,
-            "weight":order.weight,
-            "product":product
+            "user":order.user_email,
+            "products":[]
         })
+        count += 1
+        cards = Card.query.filter_by(order_id=order.id).all()
+        for card in cards:
+            product = product_by_id_schema.dump(db.get_or_404(Product, card.product_id))
+            data[count]['products'].append({
+                "id":card.id,
+                "quantity":card.quantity,
+                "color":card.color,
+                "size":card.size,
+                "product":product
+            })
     return jsonify(data)
 
 
