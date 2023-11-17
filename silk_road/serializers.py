@@ -117,3 +117,23 @@ product_schemas = ProductSerializer(many=True)
 product_schema = ProductSerializer()
 
 
+class CardSerializer(Schema):
+    id = fields.Integer(dump_only=True)
+    color = fields.String(required=True)
+    size = fields.String(required=True)
+    quantity = fields.Integer(required=True)
+    product = fields.Nested(ProductByIdSerializer, dump_only=True, required=True)
+
+card_schema = CardSerializer(many=True)
+
+
+class OrderSerializer(Schema):
+    id = fields.Integer(dump_only=True)
+    total_price = fields.Float()
+    payed = fields.Boolean()
+    done = fields.Boolean()
+    destination = fields.String()
+    date = fields.DateTime()
+    card = fields.Nested(CardSerializer, dump_only=True, required=True, many=True)
+
+order_schema = OrderSerializer(many=True)
